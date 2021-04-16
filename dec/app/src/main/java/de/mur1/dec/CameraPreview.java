@@ -15,6 +15,9 @@ import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
+import android.widget.Button;
+import android.widget.TextView;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -59,7 +62,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             is.reset();
             bytes_read = -1;
 
-            if (id < 0) {
+            if (id == R.raw.labels) {
                 label_map = new byte[file_size];
             } else if (id == R.raw.pbtxt) {
                 pipeline_cfg = new byte[file_size];
@@ -70,7 +73,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             file_size = 0;
             while ((bytes_read = is.read(buffer)) != -1) {
                     for (int b = 0; b < bytes_read; b++) {
-                        if (id < 0) {
+                        if (id == R.raw.labels) {
                             label_map[file_size + b] = buffer[b];
                         } else if (id == R.raw.pbtxt) {
                             pipeline_cfg[file_size + b] = buffer[b];
@@ -81,7 +84,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
                     file_size += bytes_read;
             }
         } catch (Exception e) {
-            if (id < 0) {
+            if (id == R.raw.labels) {
                 Log.d("error loading file", "label_map");
             } else if (id == R.raw.pbtxt) {
                 Log.d("error loading file", "pipeline_cfg");
@@ -106,7 +109,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         this.semaphore = new Semaphore(1);
 
         if (this.label_map == null) {
-            //ReadRawFileIntoByteArray(R.raw.label_map);
+            ReadRawFileIntoByteArray(R.raw.labels);
         }
         if (this.pipeline_cfg == null) {
             ReadRawFileIntoByteArray(R.raw.pbtxt);
@@ -115,7 +118,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             ReadRawFileIntoByteArray(R.raw.graph);
         }
 
-        ProcessFrame.initNet(pipeline_cfg, pipeline_cfg.length, saved_model, saved_model.length);
+        ProcessFrame.initNet(label_map, label_map.length, pipeline_cfg, pipeline_cfg.length, saved_model, saved_model.length);
         ProcessFrame.init();
     }
 
@@ -153,6 +156,8 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         }
     }
 
+    int image_counter = 0;
+
     public void onPreviewFrame(byte[] data, Camera camera) {
         this.process_frame_skip_counter = (this.process_frame_skip_counter + 1) % 10;
         if (this.process_frame_skip_counter != 0) return;
@@ -162,6 +167,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             Semaphore semaphore;
             byte[] data;
             Camera camera;
+            String avg_coords;
 
             public ProcessFrameWorker(Semaphore semaphore, byte[] data, Camera camera, Context context) {
                 this.context = context;
@@ -187,21 +193,25 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
                 if (bitmap != null) {
                     ProcessFrame.process(bitmap);
 
-                    String path = Environment.getExternalStorageDirectory().toString();
-                    OutputStream fOut = null;
-                    File file = new File(path + "/Pictures", "edgetest_.jpg");
-                    if (!file.exists()) {
-                        try {
-                            fOut = new FileOutputStream(file);
-                            ByteArrayOutputStream stream = new ByteArrayOutputStream();
-                            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream);
-                            byte[] arr = stream.toByteArray();
-                            fOut.write(arr, 0, arr.length);
-                            fOut.flush();
-                            fOut.close();
-                        } catch (Exception e) {
+                    /*
+                    if (bitmap.getPixel(0, 0) == 0) {
+                        String path = Environment.getExternalStorageDirectory().toString();
+                        OutputStream fOut = null;
+                        File file = new File(path + "/Pictures", "edgetest_" + image_counter++ + ".jpg");
+                        if (!file.exists()) {
+                            try {
+                                fOut = new FileOutputStream(file);
+                                ByteArrayOutputStream stream = new ByteArrayOutputStream();
+                                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream);
+                                byte[] arr = stream.toByteArray();
+                                fOut.write(arr, 0, arr.length);
+                                fOut.flush();
+                                fOut.close();
+                            } catch (Exception e) {
+                            }
                         }
                     }
+                    */
                 }
                 this.semaphore.release();
             }

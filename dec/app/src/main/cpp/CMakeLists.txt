@@ -54,7 +54,7 @@ find_library(
 
 add_library(lib_opencv SHARED IMPORTED)
 
-set_target_properties(lib_opencv PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}/libopencv_java3.so)
+set_target_properties(lib_opencv PROPERTIES IMPORTED_LOCATION ${CMAKE_SOURCE_DIR}/../jniLibs/${ANDROID_ABI}/libopencv_java4.so)
 
 target_link_libraries(
                        processframe-lib

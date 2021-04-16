@@ -69,6 +69,11 @@ public class CameraActivity extends AppCompatActivity {
                 if (info.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
                     break;
                 }
+                /*
+                if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+                    break;
+                }
+                */
             }
             this.camera = Camera.open(this.camera_id);
             this.camera_parameters = this.camera.getParameters();

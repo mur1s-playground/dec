@@ -8,6 +8,6 @@ public class ProcessFrame {
     }
 
     public static native void init();
-    public static native void initNet(byte[] config, int config_size, byte[] weights, int weights_size);
+    public static native void initNet(byte[] labels, int labels_size, byte[] config, int config_size, byte[] weights, int weights_size);
     public static native void process(Bitmap bitmap);
 }
