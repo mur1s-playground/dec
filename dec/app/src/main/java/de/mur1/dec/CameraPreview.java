@@ -18,6 +18,8 @@ import android.view.SurfaceView;
 import android.widget.Button;
 import android.widget.TextView;
 
+import androidx.annotation.RequiresPermission;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -46,54 +48,6 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
     public byte[] pipeline_cfg = null;
     public byte[] saved_model = null;
 
-    private void ReadRawFileIntoByteArray(int id) {
-
-        int bytes_read;
-        int file_size = 0;
-        InputStream is;
-        is = context.getResources().openRawResource(id);
-
-        byte[] buffer = new byte[1024];
-
-        try {
-            while ((bytes_read = is.read(buffer)) != -1) {
-                file_size += bytes_read;
-            }
-            is.reset();
-            bytes_read = -1;
-
-            if (id == R.raw.labels) {
-                label_map = new byte[file_size];
-            } else if (id == R.raw.pbtxt) {
-                pipeline_cfg = new byte[file_size];
-            } else if (id == R.raw.graph) {
-                saved_model = new byte[file_size];
-            }
-
-            file_size = 0;
-            while ((bytes_read = is.read(buffer)) != -1) {
-                    for (int b = 0; b < bytes_read; b++) {
-                        if (id == R.raw.labels) {
-                            label_map[file_size + b] = buffer[b];
-                        } else if (id == R.raw.pbtxt) {
-                            pipeline_cfg[file_size + b] = buffer[b];
-                        } else if (id == R.raw.graph) {
-                            saved_model[file_size + b] = buffer[b];
-                        }
-                    }
-                    file_size += bytes_read;
-            }
-        } catch (Exception e) {
-            if (id == R.raw.labels) {
-                Log.d("error loading file", "label_map");
-            } else if (id == R.raw.pbtxt) {
-                Log.d("error loading file", "pipeline_cfg");
-            } else if (id == R.raw.graph) {
-                Log.d("error loading file", "saved_model");
-            }
-        }
-    }
-
     public CameraPreview(Context context, Camera camera, ExecutorService executor_service, Handler main_thread_handler) {
         super(context);
         this.context = context;
@@ -109,17 +63,20 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
         this.semaphore = new Semaphore(1);
 
         if (this.label_map == null) {
-            ReadRawFileIntoByteArray(R.raw.labels);
+            this.label_map = Util.getResourceAsByteArray(R.raw.labels);
         }
         if (this.pipeline_cfg == null) {
-            ReadRawFileIntoByteArray(R.raw.pbtxt);
+            this.pipeline_cfg = Util.getResourceAsByteArray(R.raw.pbtxt);
         }
         if (this.saved_model == null) {
-            ReadRawFileIntoByteArray(R.raw.graph);
+            this.saved_model = Util.getResourceAsByteArray(R.raw.graph);
         }
 
-        ProcessFrame.initNet(label_map, label_map.length, pipeline_cfg, pipeline_cfg.length, saved_model, saved_model.length);
-        ProcessFrame.init();
+        if (!ProcessFrame.initialized) {
+            ProcessFrame.initNet(label_map, label_map.length, pipeline_cfg, pipeline_cfg.length, saved_model, saved_model.length);
+            ProcessFrame.init();
+            ProcessFrame.initialized = true;
+        }
     }
 
     public void surfaceCreated(SurfaceHolder holder) {
